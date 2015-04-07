@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# metadata prints the value associated with the named metadata key on this VM.
+metadata() {
+	curl http://metadata/computeMetadata/v1/instance/attributes/$1 -H "Metadata-Flavor: Google"
+}
+
+set -e
+
+# redirector should be the gs:// URL of the go-import-redirector binary.
+redirector=$(metadata redirector)
+
+# import should be the import path, like rsc.io/*
+# repo should be the repo path, like https://github.com/rsc/*
+import=$(metadata import)
+repo=$(metadata repo)
+
+# initialize /work with redirector binary
+mkdir /work
+gsutil cp $redirector /work/redirector
+chmod +x /work/redirector
+cd /work
+
+# if metadata for 'certs' is present, copy certificates from
+# <certs>/<host>.crt and <certs>/<host>.key,
+# where host is the host name in the import path.
+set +e
+host=$(echo $import | sed 's;/.*;;')
+certs=$(metadata certs)
+opt=""
+if [ "$certs" != "" ]; then
+	opt=-tls
+	gsutil cp $certs/$host.crt .
+	gsutil cp $certs/$host.key .
+fi
+
+# run redirector in a loop, sleeping 10 seconds between restarts
+while true
+do
+	./redirector $opt "$import" "$repo"
+	sleep 10
+done >log 2>&1 &
+exit 0
