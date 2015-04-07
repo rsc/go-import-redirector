@@ -23,7 +23,7 @@
 //
 // then the response for 9fans.net/go/acme/editinacme will include these tags:
 //
-//	<meta name="go-import" content="9fans.net/go git github.com/9fans/go">
+//	<meta name="go-import" content="9fans.net/go git https://github.com/9fans/go">
 //	<meta http-equiv="refresh" content="0; url=https://godoc.org/9fans.net/go/acme/editinacme">
 //
 // If both <import> and <repo> end in /*, the corresponding path element
@@ -34,7 +34,7 @@
 //
 // then the response for rsc.io/x86/x86asm will include these tags:
 //
-//	<meta name="go-import" content="rsc.io/x86 git github.com/rsc/x86">
+//	<meta name="go-import" content="rsc.io/x86 git https://github.com/rsc/x86">
 //	<meta http-equiv="refresh" content="0; url=https://godoc.org/rsc.io/x86/x86asm">
 //
 // Note that the wildcard element (x86) has been included in the Git repo path.
