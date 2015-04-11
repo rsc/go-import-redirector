@@ -92,8 +92,8 @@ func usage() {
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("go-import-redirector: ")
-	flag.Parse()
 	flag.Usage = usage
+	flag.Parse()
 	if flag.NArg() != 2 {
 		flag.Usage()
 	}
