@@ -74,6 +74,7 @@ var (
 	addr       = flag.String("addr", ":http", "serve http on `address`")
 	serveTLS   = flag.Bool("tls", false, "serve https on :443")
 	vcs        = flag.String("vcs", "git", "set version control `system`")
+	godoc      = flag.String("godoc", "https://godoc.org/", "godoc redirect address")
 	importPath string
 	repoPath   string
 	wildcard   bool
@@ -128,10 +129,10 @@ var tmpl = template.Must(template.New("main").Parse(`<!DOCTYPE html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <meta name="go-import" content="{{.ImportRoot}} {{.VCS}} {{.VCSRoot}}">
-<meta http-equiv="refresh" content="0; url=https://godoc.org/{{.ImportRoot}}{{.Suffix}}">
+<meta http-equiv="refresh" content="0; url={{.GoDoc}}">
 </head>
 <body>
-Nothing to see here; <a href="https://godoc.org/{{.ImportRoot}}{{.Suffix}}">move along</a>.
+Nothing to see here; <a href="{{.GoDoc}}">move along</a>.
 </body>
 </html>
 `))
@@ -140,7 +141,7 @@ type data struct {
 	ImportRoot string
 	VCS        string
 	VCSRoot    string
-	Suffix     string
+	GoDoc      template.URL
 }
 
 func redirect(w http.ResponseWriter, req *http.Request) {
@@ -170,11 +171,12 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		repoRoot = repoPath
 		suffix = path[len(importPath):]
 	}
+	goDocURL := template.URL(*godoc + importRoot + suffix)
 	d := &data{
 		ImportRoot: importRoot,
 		VCS:        *vcs,
 		VCSRoot:    repoRoot,
-		Suffix:     suffix,
+		GoDoc:      goDocURL,
 	}
 	var buf bytes.Buffer
 	err := tmpl.Execute(&buf, d)
