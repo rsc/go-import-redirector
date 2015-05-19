@@ -149,7 +149,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	var importRoot, repoRoot, suffix string
 	if wildcard {
 		if path == importPath {
-			http.Redirect(w, req, "https://godoc.org/"+importPath, 302)
+			http.Redirect(w, req, *godoc+importPath, 302)
 			return
 		}
 		if !strings.HasPrefix(path, importPath+"/") {
