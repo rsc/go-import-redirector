@@ -26,7 +26,7 @@
 //	<meta name="go-import" content="9fans.net/go git https://github.com/9fans/go">
 //	<meta http-equiv="refresh" content="0; url=https://godoc.org/9fans.net/go/acme/editinacme">
 //
-// If both <import> and <repo> end in /*, the corresponding path element
+// If both <import> and <repo> end in one or more /*, the corresponding path element
 // is taken from the import path and substituted in repo on each request.
 // For example, if invoked as:
 //
@@ -76,7 +76,7 @@ var (
 	vcs        = flag.String("vcs", "git", "set version control `system`")
 	importPath string
 	repoPath   string
-	wildcard   bool
+	wildcards  int
 )
 
 func usage() {
@@ -105,8 +105,8 @@ func main() {
 	if strings.HasSuffix(importPath, "/*") != strings.HasSuffix(repoPath, "/*") {
 		log.Fatal("either both import and repo must have /* or neither")
 	}
-	if strings.HasSuffix(importPath, "/*") {
-		wildcard = true
+	for strings.HasSuffix(importPath, "/*") {
+		wildcards++
 		importPath = strings.TrimSuffix(importPath, "/*")
 		repoPath = strings.TrimSuffix(repoPath, "/*")
 	}
@@ -146,7 +146,7 @@ type data struct {
 func redirect(w http.ResponseWriter, req *http.Request) {
 	path := strings.TrimSuffix(req.Host+req.URL.Path, "/")
 	var importRoot, repoRoot, suffix string
-	if wildcard {
+	if wildcards > 0 {
 		if path == importPath {
 			http.Redirect(w, req, "https://godoc.org/"+importPath, 302)
 			return
@@ -156,8 +156,9 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		elem := path[len(importPath)+1:]
-		if i := strings.Index(elem, "/"); i >= 0 {
-			elem, suffix = elem[:i], elem[i:]
+		if parts := strings.Split(elem, "/"); len(parts) >= wildcards {
+			elem = strings.Join(parts[:wildcards], "/")
+			suffix = strings.Join(parts[wildcards:], "/")
 		}
 		importRoot = importPath + "/" + elem
 		repoRoot = repoPath + "/" + elem
