@@ -100,16 +100,15 @@ func main() {
 	}
 	importPath = flag.Arg(0)
 	repoPath = flag.Arg(1)
-	// if !strings.Contains(repoPath, "://") {
-	// 	log.Fatal("repo path must be full URL")
-	// }
-	if strings.HasSuffix(importPath, "/*") != strings.HasSuffix(repoPath, "/*") {
+	if !strings.Contains(repoPath, "://") {
+		log.Fatal("repo path must be full URL")
+	}
+	if strings.HasSuffix(importPath, "/*") != strings.Contains(repoPath, "/*") {
 		log.Fatal("either both import and repo must have /* or neither")
 	}
 	if strings.HasSuffix(importPath, "/*") {
 		wildcard = true
 		importPath = strings.TrimSuffix(importPath, "/*")
-		repoPath = strings.TrimSuffix(repoPath, "/*")
 	}
 	http.HandleFunc(strings.TrimSuffix(importPath, "/")+"/", redirect)
 	if *serveTLS {
@@ -161,7 +160,11 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 			elem, suffix = elem[:i], elem[i:]
 		}
 		importRoot = importPath + "/" + elem
-		repoRoot = repoPath + "/" + elem
+		if strings.Contains(repoPath, "/*") {
+			repoRoot = strings.Replace(repoPath, "/*", "/"+elem, 1)
+		} else {
+			repoRoot = repoPath + "/" + elem
+		}
 	} else {
 		if path != importPath && !strings.HasPrefix(path, importPath+"/") {
 			http.NotFound(w, req)
