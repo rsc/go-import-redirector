@@ -74,6 +74,7 @@ var (
 	addr       = flag.String("addr", ":http", "serve http on `address`")
 	serveTLS   = flag.Bool("tls", false, "serve https on :443")
 	vcs        = flag.String("vcs", "git", "set version control `system`")
+	godoc      = flag.String("godoc", "https://godoc.org/", "godoc redirect address")
 	importPath string
 	repoPath   string
 	wildcard   bool
@@ -99,16 +100,15 @@ func main() {
 	}
 	importPath = flag.Arg(0)
 	repoPath = flag.Arg(1)
-	if !strings.Contains(repoPath, "://") {
-		log.Fatal("repo path must be full URL")
-	}
-	if strings.HasSuffix(importPath, "/*") != strings.HasSuffix(repoPath, "/*") {
+	// if !strings.Contains(repoPath, "://") {
+	// 	log.Fatal("repo path must be full URL")
+	// }
+	if strings.HasSuffix(importPath, "/*") != strings.Contains(repoPath, "/*") {
 		log.Fatal("either both import and repo must have /* or neither")
 	}
 	if strings.HasSuffix(importPath, "/*") {
 		wildcard = true
 		importPath = strings.TrimSuffix(importPath, "/*")
-		repoPath = strings.TrimSuffix(repoPath, "/*")
 	}
 	http.HandleFunc(strings.TrimSuffix(importPath, "/")+"/", redirect)
 	if *serveTLS {
@@ -128,10 +128,10 @@ var tmpl = template.Must(template.New("main").Parse(`<!DOCTYPE html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <meta name="go-import" content="{{.ImportRoot}} {{.VCS}} {{.VCSRoot}}">
-<meta http-equiv="refresh" content="0; url=https://godoc.org/{{.ImportRoot}}{{.Suffix}}">
+<meta http-equiv="refresh" content="0; url={{.GoDoc}}">
 </head>
 <body>
-Nothing to see here; <a href="https://godoc.org/{{.ImportRoot}}{{.Suffix}}">move along</a>.
+Nothing to see here; <a href="{{.GoDoc}}">move along</a>.
 </body>
 </html>
 `))
@@ -140,7 +140,7 @@ type data struct {
 	ImportRoot string
 	VCS        string
 	VCSRoot    string
-	Suffix     string
+	GoDoc      template.URL
 }
 
 func redirect(w http.ResponseWriter, req *http.Request) {
@@ -148,7 +148,7 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	var importRoot, repoRoot, suffix string
 	if wildcard {
 		if path == importPath {
-			http.Redirect(w, req, "https://godoc.org/"+importPath, 302)
+			http.Redirect(w, req, *godoc+importPath, 302)
 			return
 		}
 		if !strings.HasPrefix(path, importPath+"/") {
@@ -160,7 +160,11 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 			elem, suffix = elem[:i], elem[i:]
 		}
 		importRoot = importPath + "/" + elem
-		repoRoot = repoPath + "/" + elem
+		if strings.Contains(repoPath, "/*") {
+			repoRoot = strings.Replace(repoPath, "/*", "/"+elem, 1)
+		} else {
+			repoRoot = repoPath + "/" + elem
+		}
 	} else {
 		if path != importPath && !strings.HasPrefix(path, importPath+"/") {
 			http.NotFound(w, req)
@@ -170,11 +174,12 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		repoRoot = repoPath
 		suffix = path[len(importPath):]
 	}
+	goDocURL := template.URL(*godoc + importRoot + suffix)
 	d := &data{
 		ImportRoot: importRoot,
 		VCS:        *vcs,
 		VCSRoot:    repoRoot,
-		Suffix:     suffix,
+		GoDoc:      goDocURL,
 	}
 	var buf bytes.Buffer
 	err := tmpl.Execute(&buf, d)
