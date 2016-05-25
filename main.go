@@ -100,9 +100,9 @@ func main() {
 	}
 	importPath = flag.Arg(0)
 	repoPath = flag.Arg(1)
-	if !strings.Contains(repoPath, "://") {
-		log.Fatal("repo path must be full URL")
-	}
+	// if !strings.Contains(repoPath, "://") {
+	// 	log.Fatal("repo path must be full URL")
+	// }
 	if strings.HasSuffix(importPath, "/*") != strings.Contains(repoPath, "/*") {
 		log.Fatal("either both import and repo must have /* or neither")
 	}
