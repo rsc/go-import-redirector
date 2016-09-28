@@ -68,15 +68,18 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"rsc.io/letsencrypt"
 )
 
 var (
-	addr       = flag.String("addr", ":http", "serve http on `address`")
-	serveTLS   = flag.Bool("tls", false, "serve https on :443")
-	vcs        = flag.String("vcs", "git", "set version control `system`")
-	importPath string
-	repoPath   string
-	wildcard   bool
+	addr             = flag.String("addr", ":http", "serve http on `address`")
+	serveTLS         = flag.Bool("tls", false, "serve https on :443")
+	vcs              = flag.String("vcs", "git", "set version control `system`")
+	letsEncryptEmail = flag.String("letsencrypt", "", "use lets encrypt to issue TLS certificate, agreeing to TOS as `email` (implies -tls)")
+	importPath       string
+	repoPath         string
+	wildcard         bool
 )
 
 func usage() {
@@ -90,7 +93,7 @@ func usage() {
 }
 
 func main() {
-	log.SetFlags(0)
+	// log.SetFlags(0)
 	log.SetPrefix("go-import-redirector: ")
 	flag.Usage = usage
 	flag.Parse()
@@ -111,16 +114,27 @@ func main() {
 		repoPath = strings.TrimSuffix(repoPath, "/*")
 	}
 	http.HandleFunc(strings.TrimSuffix(importPath, "/")+"/", redirect)
-	if *serveTLS {
-		host := importPath
-		if i := strings.Index(host, "/"); i >= 0 {
-			host = host[:i]
-		}
-		go func() {
-			log.Fatal(http.ListenAndServeTLS(":https", host+".crt", host+".key", nil))
-		}()
+	http.HandleFunc(importPath+"/.ping", pong) // non-redirecting URL for debugging TLS certificates
+	if !*serveTLS {
+		log.Fatal(http.ListenAndServe(*addr, nil))
 	}
-	log.Fatal(http.ListenAndServe(*addr, nil))
+
+	host := importPath
+	if i := strings.Index(host, "/"); i >= 0 {
+		host = host[:i]
+	}
+
+	m := new(letsencrypt.Manager)
+	m.CacheFile("letsencrypt.cache")
+	m.SetHosts([]string{host})
+
+	if *letsEncryptEmail != "" && !m.Registered() {
+		if err := m.Register(*letsEncryptEmail, nil); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	log.Fatal(m.Serve())
 }
 
 var tmpl = template.Must(template.New("main").Parse(`<!DOCTYPE html>
@@ -131,7 +145,7 @@ var tmpl = template.Must(template.New("main").Parse(`<!DOCTYPE html>
 <meta http-equiv="refresh" content="0; url=https://godoc.org/{{.ImportRoot}}{{.Suffix}}">
 </head>
 <body>
-Nothing to see here; <a href="https://godoc.org/{{.ImportRoot}}{{.Suffix}}">move along</a>.
+Redirecting to docs at <a href="https://godoc.org/{{.ImportRoot}}{{.Suffix}}">godoc.org/{{.ImportRoot}}{{.Suffix}}</a>...
 </body>
 </html>
 `))
@@ -183,4 +197,8 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	w.Write(buf.Bytes())
+}
+
+func pong(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "pong")
 }

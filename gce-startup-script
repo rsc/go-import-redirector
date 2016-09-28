@@ -2,7 +2,11 @@
 
 # metadata prints the value associated with the named metadata key on this VM.
 metadata() {
-	curl http://metadata/computeMetadata/v1/instance/attributes/$1 -H "Metadata-Flavor: Google"
+	curl -s http://metadata/computeMetadata/v1/instance/attributes/$1 -H "Metadata-Flavor: Google" >/tmp/meta
+	if ! grep 'Error 404' /tmp/meta >/dev/null; then
+		cat /tmp/meta
+	fi
+	rm -f /tmp/meta
 }
 
 set -e
@@ -16,7 +20,7 @@ import=$(metadata import)
 repo=$(metadata repo)
 
 # initialize /work with redirector binary
-mkdir /work
+mkdir -p /work
 gsutil cp $redirector /work/redirector
 chmod +x /work/redirector
 cd /work
@@ -32,6 +36,10 @@ if [ "$certs" != "" ]; then
 	opt=-tls
 	gsutil cp $certs/$host.crt .
 	gsutil cp $certs/$host.key .
+fi
+letsencrypt=$(metadata letsencrypt)
+if [ "$letsencrypt" != "" ]; then
+	opt="-letsencrypt=$letsencrypt"
 fi
 
 # run redirector in a loop, sleeping 10 seconds between restarts
