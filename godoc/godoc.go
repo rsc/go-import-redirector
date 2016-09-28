@@ -102,6 +102,7 @@ func Redirect(vcs, importPath, repoPath string) http.Handler {
 			http.Error(w, err.Error(), 500)
 			return
 		}
+		w.Header().Set("Cache-Control", "public, max-age=300")
 		w.Write(buf.Bytes())
 	})
 }
