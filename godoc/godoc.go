@@ -56,7 +56,7 @@ func Redirect(vcs, importPath, repoPath string) http.Handler {
 	if strings.HasSuffix(importPath, "/*") && strings.HasSuffix(repoPath, "/*") {
 		wildcard = true
 		importPath = strings.TrimSuffix(importPath, "/*")
-		repoPath = strings.TrimSuffix(importPath, "/*")
+		repoPath = strings.TrimSuffix(repoPath, "/*")
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
