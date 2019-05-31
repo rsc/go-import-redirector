@@ -69,7 +69,7 @@ import (
 	"os"
 	"strings"
 
-	"rsc.io/letsencrypt"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
@@ -124,17 +124,7 @@ func main() {
 		host = host[:i]
 	}
 
-	m := new(letsencrypt.Manager)
-	m.CacheFile("letsencrypt.cache")
-	m.SetHosts([]string{host})
-
-	if *letsEncryptEmail != "" && !m.Registered() {
-		if err := m.Register(*letsEncryptEmail, nil); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	log.Fatal(m.Serve())
+	log.Fatal(http.Serve(autocert.NewListener(host), nil))
 }
 
 var tmpl = template.Must(template.New("main").Parse(`<!DOCTYPE html>
