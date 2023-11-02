@@ -132,10 +132,10 @@ var tmpl = template.Must(template.New("main").Parse(`<!DOCTYPE html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <meta name="go-import" content="{{.ImportRoot}} {{.VCS}} {{.VCSRoot}}">
-<meta http-equiv="refresh" content="0; url=https://godoc.org/{{.ImportRoot}}{{.Suffix}}">
+<meta http-equiv="refresh" content="0; url=https://pkg.go.dev/{{.ImportRoot}}{{.Suffix}}">
 </head>
 <body>
-Redirecting to docs at <a href="https://godoc.org/{{.ImportRoot}}{{.Suffix}}">godoc.org/{{.ImportRoot}}{{.Suffix}}</a>...
+Redirecting to docs at <a href="https://pkg.go.dev/{{.ImportRoot}}{{.Suffix}}">pkg.go.dev/{{.ImportRoot}}{{.Suffix}}</a>...
 </body>
 </html>
 `))
@@ -148,11 +148,15 @@ type data struct {
 }
 
 func redirect(w http.ResponseWriter, req *http.Request) {
+	isGit := strings.HasSuffix(req.URL.Path, "/info/refs")
+	if isGit {
+		req.URL.Path = strings.TrimSuffix(req.URL.Path, "/info/refs")
+	}
 	path := strings.TrimSuffix(req.Host+req.URL.Path, "/")
 	var importRoot, repoRoot, suffix string
 	if wildcard {
 		if path == importPath {
-			http.Redirect(w, req, "https://godoc.org/"+importPath, 302)
+			http.Redirect(w, req, "https://pkg.go.dev/"+importPath, 302)
 			return
 		}
 		if !strings.HasPrefix(path, importPath+"/") {
@@ -173,6 +177,11 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 		importRoot = importPath
 		repoRoot = repoPath
 		suffix = path[len(importPath):]
+	}
+
+	if isGit {
+		http.Error(w, fmt.Sprintf("Use 'git clone %s' instead.\n", repoRoot), http.StatusNotFound)
+		return
 	}
 	d := &data{
 		ImportRoot: importRoot,
