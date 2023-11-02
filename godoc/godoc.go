@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package godoc serves redirects to godoc.org, including ``go get'' headers.
+// Package godoc serves redirects to pkg.go.dev, including ``go get'' headers.
 package godoc
 
 import (
@@ -18,10 +18,10 @@ var tmpl = template.Must(template.New("main").Parse(`<!DOCTYPE html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <meta name="go-import" content="{{.ImportRoot}} {{.VCS}} {{.VCSRoot}}">
-<meta http-equiv="refresh" content="0; url=https://godoc.org/{{.ImportRoot}}{{.Suffix}}">
+<meta http-equiv="refresh" content="0; url=https://pkg.go.dev/{{.ImportRoot}}{{.Suffix}}">
 </head>
 <body>
-Redirecting to docs at <a href="https://godoc.org/{{.ImportRoot}}{{.Suffix}}">godoc.org/{{.ImportRoot}}{{.Suffix}}</a>...
+Redirecting to docs at <a href="https://pkg.go.dev/{{.ImportRoot}}{{.Suffix}}">pkg.go.dev/{{.ImportRoot}}{{.Suffix}}</a>...
 </body>
 </html>
 `))
@@ -34,7 +34,7 @@ type data struct {
 }
 
 // Redirect returns an HTTP handler that redirects requests for the tree rooted at importPath
-// to godoc.org pages for those import paths.
+// to pkg.go.dev pages for those import paths.
 // The redirections include headers directing ``go get'' to satisfy the
 // imports by checking out code from repoPath using the given version control system.
 //
@@ -68,7 +68,7 @@ func Redirect(vcs, importPath, repoPath string) http.Handler {
 		var importRoot, repoRoot, suffix string
 		if wildcard {
 			if path == importPath {
-				http.Redirect(w, req, "https://godoc.org/"+importPath, 302)
+				http.Redirect(w, req, "https://pkg.go.dev/"+importPath, 302)
 				return
 			}
 			if !strings.HasPrefix(path, importPath+"/") {
