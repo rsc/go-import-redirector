@@ -64,7 +64,7 @@ func Redirect(vcs, importPath, repoPath string) http.Handler {
 			fmt.Fprintf(w, "pong")
 			return
 		}
-		path := strings.TrimSuffix(req.Host+req.URL.Path, "/")
+		path := strings.TrimSuffix(strings.TrimSuffix(req.Host+req.URL.Path, "@latest"), "/")
 		var importRoot, repoRoot, suffix string
 		if wildcard {
 			if path == importPath {
